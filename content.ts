@@ -2,7 +2,7 @@
 // nothing about torches or amulets. Balance note, kept honest against the
 // engine: a player who only ever presses numbers escapes with ~2 embers to
 // spare (the grim ending). The good endings are locked behind examining the
-// highlighted nouns — that is the "difficult to master" half. The best ending
+// highlighted nouns; that is the "difficult to master" half. The best ending
 // needs every hidden cache (straw, oil, bones), so it rewards a player who has
 // learned to look at everything.
 
@@ -23,7 +23,7 @@ export const EMBERLIGHT: Dungeon = {
       looks: [
         {
           noun: "torch",
-          text: "Pitch-soaked and fierce — the one warm thing in this place. It will not burn on the wall forever.",
+          text: "Pitch-soaked and fierce, the one warm thing in this place. It will not burn on the wall forever.",
         },
         {
           noun: "door",
@@ -142,7 +142,7 @@ export const EMBERLIGHT: Dungeon = {
     well_room: {
       id: "well_room",
       title: "The round chamber",
-      text: "A black {well} yawns at the heart of the room, a frayed {rope} still knotted to its rim. A still {pool} of dark water has spread across the floor — and though your torch burns right above it, it throws back no reflection at all.",
+      text: "A black {well} yawns at the heart of the room, a frayed {rope} still knotted to its rim. A still {pool} of dark water has spread across the floor, and though your torch burns right above it, it throws back no reflection at all.",
       looks: [
         {
           noun: "well",
@@ -189,7 +189,7 @@ export const EMBERLIGHT: Dungeon = {
     vault: {
       id: "vault",
       title: "A dry vault",
-      text: "The rope ends in a dry, close vault. On a stone pedestal a single {amulet} burns with its own cold light. Against the far wall something vast and scaled — a {beast} — sleeps, its slow breath stirring the dust.",
+      text: "The rope ends in a dry, close vault. On a stone pedestal a single {amulet} burns with its own cold light. Against the far wall something vast and scaled, a {beast}, sleeps, its slow breath stirring the dust.",
       looks: [
         {
           noun: "amulet",
@@ -209,7 +209,7 @@ export const EMBERLIGHT: Dungeon = {
             { give: "amulet" },
             { flag: "has_amulet" },
             {
-              say: "You lift it. The beast's breath catches — the vault holds still — then it sighs and settles. It is yours.",
+              say: "You lift it. The beast's breath catches; the vault holds still; then it sighs and settles. It is yours.",
             },
           ],
         },
@@ -243,11 +243,11 @@ export const EMBERLIGHT: Dungeon = {
         },
         {
           noun: "tunnel",
-          text: "A crawlspace, long and utterly lightless. It goes up, eventually — but it will eat a great deal of your torch to cross it.",
+          text: "A crawlspace, long and utterly lightless. It goes up, eventually, but it will eat a great deal of your torch to cross it.",
         },
         {
           noun: "bones",
-          text: "Hundreds of them, all facing the gate — they died waiting for the honest way to open. One climber's hand still grips an unspilled flask of oil. You take it; they have no more use for light.",
+          text: "Hundreds of them, all facing the gate; they died waiting for the honest way to open. One climber's hand still grips an unspilled flask of oil. You take it; they have no more use for light.",
           effects: [{ light: 2 }],
         },
       ],
@@ -265,7 +265,7 @@ export const EMBERLIGHT: Dungeon = {
           cost: 3,
           effects: [
             { goto: "exit" },
-            { say: "You crawl for a long, blind time. It costs you dearly — but it ends." },
+            { say: "You crawl for a long, blind time. It costs you dearly, but it ends." },
           ],
         },
         {
@@ -280,7 +280,7 @@ export const EMBERLIGHT: Dungeon = {
     exit: {
       id: "exit",
       title: "The way out",
-      text: "The passage rises. Far above, a ragged grey {light} bleeds down the steps — not torchlight, not fire. Dawn. The way out.",
+      text: "The passage rises. Far above, a ragged grey {light} bleeds down the steps, not torchlight, not fire. Dawn. The way out.",
       looks: [
         {
           noun: "light",

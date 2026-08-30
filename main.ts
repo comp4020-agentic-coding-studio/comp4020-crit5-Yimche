@@ -140,7 +140,7 @@ function renderChoices(): void {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "choice";
-    const cost = c.cost ? `  <span class="cost">–${c.cost} ✦</span>` : "";
+    const cost = c.cost ? `  <span class="cost">-${c.cost} ✦</span>` : "";
     btn.innerHTML = `<span class="key">${i + 1}</span> ${escapeHtml(c.label)}${cost}`;
     btn.dataset.id = c.id;
     btn.addEventListener("click", () => act(() => choose(EMBERLIGHT, state, c.id), c.label));
@@ -196,7 +196,7 @@ function restart(): void {
 }
 
 async function start(): Promise<void> {
-  // Paint the affordance first — the meter and the pulsing first move are on
+  // Paint the affordance first: the meter and the pulsing first move are on
   // screen from the opening frame, while the room text types in above them.
   // (Found by watching the finished game load: the choices used to appear only
   // after two seconds of typing, so the opening screen invited nothing.)

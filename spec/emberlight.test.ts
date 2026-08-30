@@ -18,7 +18,7 @@ function look(s: GameState, noun: string): GameState {
 // ---------------------------------------------------------------------------
 // The one rule under a focused test (spec: "one rule of the game has a focused
 // automated test"). The rule: moving spends light, and when the light reaches
-// zero the dark takes you — the game is lost.
+// zero the dark takes you, and the game is lost.
 // ---------------------------------------------------------------------------
 describe("the light is your life", () => {
   it("spends light when you move", () => {
@@ -65,7 +65,7 @@ describe("spec: it can be lost", () => {
 });
 
 describe("spec: a stranger can reach an ending", () => {
-  it("wins pressing numbers only — no examining required", () => {
+  it("wins pressing numbers only, no examining required", () => {
     // The only inputs here are menu choices: no look() calls at all. This is
     // the path a first-timer finds by pressing keys, and it must reach an end.
     let s = newGame(EMBERLIGHT);
@@ -115,7 +115,7 @@ describe("depth: mastering the examine layer earns the best ending", () => {
 
 // ---------------------------------------------------------------------------
 // Sensors: standards the game must hold whatever the story is. These are
-// harness — they come forward to next week's repo like a rule in CLAUDE.md.
+// harness; they come forward to next week's repo like a rule in CLAUDE.md.
 // ---------------------------------------------------------------------------
 function allProse(): string[] {
   const out: string[] = [EMBERLIGHT.darkDeath];
@@ -135,7 +135,7 @@ function allProse(): string[] {
 
 describe("sensor: the game teaches itself, with no instructions", () => {
   // The no-tutorial rule can't be fully tested, but the failure mode it guards
-  // against — control instructions leaking into the prose — can be.
+  // against, control instructions leaking into the prose, can be.
   // Target the canonical control-tutorial phrasings, not the verbs in general:
   // "press any key" leaks, "you press it to the torch" does not.
   const banned = new RegExp(
@@ -167,6 +167,19 @@ describe("sensor: every glowing noun is examinable, and every examinable glows",
       for (const noun of looks) {
         expect(marked, `${r.id}: "${noun}" is examinable but never glows`).toContain(noun);
       }
+    }
+  });
+});
+
+describe("sensor: the prose keeps its own voice, free of AI tells", () => {
+  // The house style forbids the em-dash and its typewritten stand-ins. A model
+  // reaches for them by reflex, so a machine should catch them by reflex too:
+  // any em-dash, en-dash, or double hyphen in player-facing text fails here.
+  // Rewrite with a comma, a semicolon, or a full stop instead.
+  const dashes = /[—–]|--/;
+  it("no em-dashes, en-dashes or double hyphens in any game text", () => {
+    for (const text of allProse()) {
+      expect(dashes.test(text), `a banned dash leaked: "${text}"`).toBe(false);
     }
   });
 });
