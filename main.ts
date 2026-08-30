@@ -173,14 +173,14 @@ async function act(step: () => { state: GameState; out: string[] }, label: strin
   const result = step();
   state = result.state;
 
+  renderMeter(); // instant feedback: the light drops the moment you act
   setControlsEnabled(false);
   for (const line of result.out) await say(line);
   if (state.status === "playing" && state.roomId !== prevRoom) await enterRoom();
   if (state.status !== "playing") await say(outcome(state), "ending");
-  setControlsEnabled(true);
 
-  renderMeter();
   renderChoices();
+  setControlsEnabled(true);
   if (finePointer && state.status === "playing") input.focus();
 }
 
@@ -196,10 +196,14 @@ function restart(): void {
 }
 
 async function start(): Promise<void> {
-  await enterRoom();
+  // Paint the affordance first — the meter and the pulsing first move are on
+  // screen from the opening frame, while the room text types in above them.
+  // (Found by watching the finished game load: the choices used to appear only
+  // after two seconds of typing, so the opening screen invited nothing.)
   renderMeter();
   renderChoices();
   if (finePointer) input.focus();
+  await enterRoom();
 }
 
 // Typed input: a bare number picks that choice, anything else looks closer.
