@@ -186,45 +186,6 @@ main {
   outline: none;
 }
 
-/* The torch meter. */
-.meter {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  padding: 0.5rem 0;
-  border-top: 1px dashed var(--ink-faint);
-  font-size: 0.9rem;
-}
-
-.meter-label {
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  font-size: 0.66rem;
-  color: var(--ink-dim);
-}
-
-.meter-pips {
-  letter-spacing: 0.12em;
-  color: var(--ink-bright);
-  text-shadow: 0 0 6px var(--glow);
-}
-
-.meter-count {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-dim);
-}
-
-.meter.low .meter-pips {
-  color: var(--ink);
-}
-
-.meter.dying .meter-pips {
-  color: var(--danger);
-  text-shadow: 0 0 10px var(--danger);
-  animation: flicker 1.1s infinite;
-}
-
 /* The menu of moves. */
 #choices {
   list-style: none;
@@ -260,9 +221,7 @@ main {
 }
 
 .choice:hover .key,
-.choice:focus-visible .key,
-.choice:hover .cost,
-.choice:focus-visible .cost {
+.choice:focus-visible .key {
   color: #000;
   text-shadow: none;
 }
@@ -272,11 +231,6 @@ main {
   min-width: 1.6em;
   color: var(--ink-bright);
   text-shadow: 0 0 6px var(--glow);
-}
-
-.choice .cost {
-  color: var(--ink-dim);
-  font-size: 0.85em;
 }
 
 .choice.again {
@@ -342,26 +296,9 @@ main {
   }
 }
 
-@keyframes flicker {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  48% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-  52% {
-    opacity: 1;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .caret,
-  .choice.pulse,
-  .meter.dying .meter-pips {
+  .choice.pulse {
     animation: none;
   }
   .crt::after {

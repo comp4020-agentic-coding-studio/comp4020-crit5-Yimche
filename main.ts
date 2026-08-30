@@ -10,7 +10,6 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
 const finePointer = window.matchMedia("(pointer: fine)").matches;
 
 const scroll = must<HTMLDivElement>("#scroll");
-const meter = must<HTMLDivElement>("#meter");
 const choicesEl = must<HTMLUListElement>("#choices");
 const form = must<HTMLFormElement>("#prompt");
 const input = must<HTMLInputElement>("#cmd");
@@ -18,6 +17,7 @@ const input = must<HTMLInputElement>("#cmd");
 let state: GameState = newGame(EMBERLIGHT);
 let typing = false;
 let skip = false;
+let hasActed = false; // the opening move pulses until the player acts once
 
 function must<T extends Element>(sel: string): T {
   const el = document.querySelector<T>(sel);
@@ -104,20 +104,6 @@ async function enterRoom(): Promise<void> {
   p.innerHTML = format(r.text);
 }
 
-function renderMeter(): void {
-  const max = state.maxLight;
-  const lit = Math.max(0, Math.min(max, state.light));
-  const pips = "✦".repeat(lit) + "✧".repeat(Math.max(0, max - lit));
-  const ratio = lit / max;
-  const level = ratio > 0.5 ? "bright" : ratio > 0.25 ? "low" : "dying";
-  meter.className = `meter ${level}`;
-  meter.innerHTML =
-    `<span class="meter-label">torch</span>` +
-    `<span class="meter-pips" aria-hidden="true">${pips}</span>` +
-    `<span class="meter-count">${lit}</span>`;
-  meter.setAttribute("aria-label", `Torch: ${lit} of ${max} embers`);
-}
-
 function renderChoices(): void {
   choicesEl.replaceChildren();
 
@@ -126,7 +112,7 @@ function renderChoices(): void {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "choice again";
-    btn.textContent = "▷  wake in the cell again";
+    btn.textContent = "▷  go down again";
     btn.addEventListener("click", restart);
     li.append(btn);
     choicesEl.append(li);
@@ -140,8 +126,7 @@ function renderChoices(): void {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "choice";
-    const cost = c.cost ? `  <span class="cost">-${c.cost} ✦</span>` : "";
-    btn.innerHTML = `<span class="key">${i + 1}</span> ${escapeHtml(c.label)}${cost}`;
+    btn.innerHTML = `<span class="key">${i + 1}</span> ${escapeHtml(c.label)}`;
     btn.dataset.id = c.id;
     btn.addEventListener("click", () => act(() => choose(EMBERLIGHT, state, c.id), c.label));
     li.append(btn);
@@ -149,7 +134,7 @@ function renderChoices(): void {
   });
 
   // The opening screen's first move gets a pulse until the player acts once.
-  if (!state.flags.includes("has_torch") && choicesEl.firstElementChild) {
+  if (!hasActed && choicesEl.firstElementChild) {
     choicesEl.firstElementChild.querySelector("button")?.classList.add("pulse");
   }
 }
@@ -169,15 +154,15 @@ async function act(step: () => { state: GameState; out: string[] }, label: strin
   const wasEnded = state.status !== "playing";
   if (wasEnded) return;
 
+  hasActed = true; // the opening move has been made; stop pulsing it
   echo(label);
   const result = step();
   state = result.state;
 
-  renderMeter(); // instant feedback: the light drops the moment you act
   setControlsEnabled(false);
   for (const line of result.out) await say(line);
   if (state.status === "playing" && state.roomId !== prevRoom) await enterRoom();
-  if (state.status !== "playing") await say(outcome(state), "ending");
+  if (state.status !== "playing") await say(outcome(EMBERLIGHT, state), "ending");
 
   renderChoices();
   setControlsEnabled(true);
@@ -191,16 +176,16 @@ function setControlsEnabled(on: boolean): void {
 
 function restart(): void {
   state = newGame(EMBERLIGHT);
+  hasActed = false;
   scroll.replaceChildren();
   void start();
 }
 
 async function start(): Promise<void> {
-  // Paint the affordance first: the meter and the pulsing first move are on
-  // screen from the opening frame, while the room text types in above them.
+  // Paint the affordance first: the pulsing first move is on screen from the
+  // opening frame, while the room text types in above it.
   // (Found by watching the finished game load: the choices used to appear only
   // after two seconds of typing, so the opening screen invited nothing.)
-  renderMeter();
   renderChoices();
   if (finePointer) input.focus();
   await enterRoom();

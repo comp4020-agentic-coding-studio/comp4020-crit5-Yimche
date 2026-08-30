@@ -15,38 +15,43 @@ function look(s: GameState, noun: string): GameState {
   return examine(EMBERLIGHT, s, noun).state;
 }
 
+// The spine of the descent, choices only, from the seal down to the reliquary.
+// Several tests start here and then diverge on what to do with the Heart.
+function descendToReliquary(): GameState {
+  let s = newGame(EMBERLIGHT);
+  s = pick(s, "descend"); // seal -> narthex
+  s = pick(s, "press_on"); // narthex -> refectory
+  s = pick(s, "to_dormitory"); // refectory -> dormitory
+  s = pick(s, "to_bridge"); // dormitory -> bridge
+  s = pick(s, "edge_across"); // bridge -> warren_hub (the safe crossing)
+  s = pick(s, "go_down"); // warren_hub -> deep_cistern
+  s = pick(s, "to_oratory"); // deep_cistern -> oratory
+  s = pick(s, "work_mechanism"); // oratory -> antechamber (the patient way)
+  s = pick(s, "slip_past"); // antechamber -> reliquary (past the guardian)
+  return s;
+}
+
 // ---------------------------------------------------------------------------
 // The one rule under a focused test (spec: "one rule of the game has a focused
-// automated test"). The rule: moving spends light, and when the light reaches
-// zero the dark takes you, and the game is lost.
+// automated test"). The rule: a fatal choice ends the run, then and there, as
+// lost. Death is never a meter running out; it is a specific choice, made.
 // ---------------------------------------------------------------------------
-describe("the light is your life", () => {
-  it("spends light when you move", () => {
+describe("a fatal choice ends the run", () => {
+  it("drinking the black cistern is death", () => {
     let s = newGame(EMBERLIGHT);
-    const before = s.light;
-    s = pick(s, "take_torch"); // +6
-    s = pick(s, "push_door"); // costs 1
-    expect(s.light).toBe(before + 6 - 1);
-  });
-
-  it("ends the game the moment the last ember dies", () => {
-    // Walk out without taking the torch: 3 embers, and the descent to the
-    // catacombs alone costs enough to spend them.
-    let s = newGame(EMBERLIGHT); // light 3
-    s = pick(s, "push_door"); // -1 -> 2, corridor
-    s = pick(s, "descend"); // -2 -> 0, the dark
+    s = pick(s, "descend");
+    s = pick(s, "press_on");
+    expect(s.status).toBe("playing");
+    s = pick(s, "drink_cistern"); // the cistern was never water
     expect(s.status).toBe("lost");
-    expect(s.light).toBe(0);
-    expect(s.ending).toBe(EMBERLIGHT.darkDeath);
   });
 
-  it("never lets a refill push the torch past its cap", () => {
+  it("a lost run offers no further moves", () => {
     let s = newGame(EMBERLIGHT);
-    s = pick(s, "take_torch"); // 9
-    s = look(s, "straw"); // +1 -> 10 (order here is just to accumulate)
-    // Repeatedly pouring oil can't exceed maxLight.
-    for (let i = 0; i < 10; i++) s = { ...s, light: Math.min(s.maxLight, s.light + 3) };
-    expect(s.light).toBeLessThanOrEqual(EMBERLIGHT.maxLight);
+    s = pick(s, "descend");
+    s = pick(s, "press_on");
+    s = pick(s, "drink_cistern");
+    expect(visibleChoices(EMBERLIGHT, s)).toHaveLength(0);
   });
 });
 
@@ -54,30 +59,38 @@ describe("the light is your life", () => {
 // Contract tests for this week's spec. They retire with the brief.
 // ---------------------------------------------------------------------------
 describe("spec: it can be lost", () => {
-  it("a wrong move ends in death", () => {
-    let s = newGame(EMBERLIGHT);
-    s = pick(s, "take_torch");
-    s = pick(s, "push_door");
-    s = pick(s, "to_chamber");
-    s = pick(s, "drink_pool"); // the pool was never water
-    expect(s.status).toBe("lost");
+  it("more than one wrong choice kills", () => {
+    // Death is scattered through the game, not gated behind one trap.
+    const fatal: Array<() => GameState> = [
+      () => {
+        let s = descendToReliquary();
+        s = pick(s, "back_antechamber");
+        return pick(s, "wake_guardian"); // rouse the sleeping guardian
+      },
+      () => {
+        let s = newGame(EMBERLIGHT);
+        s = pick(s, "descend");
+        s = pick(s, "press_on");
+        s = pick(s, "to_dormitory");
+        s = pick(s, "to_bridge");
+        return pick(s, "stride_across"); // the rotten span
+      },
+    ];
+    for (const run of fatal) expect(run().status).toBe("lost");
   });
 });
 
 describe("spec: a stranger can reach an ending", () => {
-  it("wins pressing numbers only, no examining required", () => {
-    // The only inputs here are menu choices: no look() calls at all. This is
-    // the path a first-timer finds by pressing keys, and it must reach an end.
-    let s = newGame(EMBERLIGHT);
-    s = pick(s, "take_torch");
-    s = pick(s, "push_door");
-    s = pick(s, "descend");
-    // No key (never examined the guard), so the gate is not even offered.
-    expect(visibleChoices(EMBERLIGHT, s).some((c) => c.id === "open_gate")).toBe(false);
-    s = pick(s, "crawl_tunnel");
+  it("reaches an ending pressing numbers only, no examining required", () => {
+    // Not one look() call: this is the path a first-timer finds by pressing
+    // keys, and it must carry them all the way to an ending.
+    let s = descendToReliquary();
+    s = pick(s, "take_heart");
+    s = pick(s, "to_threshold");
+    s = pick(s, "ascend");
     s = pick(s, "climb_out");
     expect(s.status).toBe("won");
-    expect(s.light).toBeGreaterThan(0);
+    expect(outcome(EMBERLIGHT, s)).not.toBe("");
   });
 
   it("the opening screen always offers a first move", () => {
@@ -86,30 +99,65 @@ describe("spec: a stranger can reach an ending", () => {
   });
 });
 
+describe("spec: what you do with the Heart changes the ending", () => {
+  it("delivering it and destroying it reach different endings", () => {
+    // Deliver: carry the Heart up untouched.
+    let delivered = descendToReliquary();
+    delivered = pick(delivered, "take_heart");
+    delivered = pick(delivered, "to_threshold");
+    delivered = pick(delivered, "ascend");
+    delivered = pick(delivered, "climb_out");
+
+    // Destroy: cast it into the furnace on the way up.
+    let destroyed = descendToReliquary();
+    destroyed = pick(destroyed, "take_heart");
+    destroyed = pick(destroyed, "to_threshold");
+    destroyed = pick(destroyed, "cast_heart");
+    destroyed = pick(destroyed, "ascend");
+    destroyed = pick(destroyed, "climb_out");
+
+    expect(delivered.status).toBe("won");
+    expect(destroyed.status).toBe("won");
+    expect(outcome(EMBERLIGHT, delivered)).not.toBe(outcome(EMBERLIGHT, destroyed));
+  });
+});
+
 describe("depth: mastering the examine layer earns the best ending", () => {
-  it("the key, the amulet and every cache lead to the richest escape", () => {
+  it("the truth, the freed sister and the saved child reach the richest end", () => {
     let s = newGame(EMBERLIGHT);
-    s = look(s, "straw"); // +1 cache
-    s = pick(s, "take_torch");
-    s = pick(s, "push_door");
-    s = pick(s, "to_guardroom");
-    s = look(s, "guard"); // the iron key
-    s = pick(s, "take_oil"); // +3
-    s = pick(s, "guard_back");
-    s = pick(s, "to_chamber");
-    s = look(s, "well"); // reveals the climb
-    s = pick(s, "climb_well");
-    s = pick(s, "take_amulet");
-    s = pick(s, "vault_up");
-    s = pick(s, "chamber_back");
     s = pick(s, "descend");
-    s = look(s, "bones"); // +2 cache
-    s = pick(s, "open_gate"); // the honest way, opened with the key
+    // Find and keep the child (the alcove hides them; looking reveals them).
+    s = look(s, "alcove");
+    s = pick(s, "take_child");
+    s = pick(s, "press_on");
+    s = pick(s, "to_dormitory");
+    s = pick(s, "to_bridge");
+    s = pick(s, "edge_across");
+    // Free Sister Aume and learn what the Heart really is.
+    s = pick(s, "to_scriptorium");
+    s = look(s, "slot");
+    s = pick(s, "free_aume");
+    s = pick(s, "listen_aume");
+    s = pick(s, "back_hub_scriptorium");
+    // Down to the reliquary and take the Heart.
+    s = pick(s, "go_down");
+    s = pick(s, "to_oratory");
+    s = pick(s, "work_mechanism");
+    s = pick(s, "slip_past");
+    s = pick(s, "take_heart");
+    // Destroy it, and climb out with the child.
+    s = pick(s, "to_threshold");
+    s = pick(s, "cast_heart");
+    s = pick(s, "ascend");
     s = pick(s, "climb_out");
+
     expect(s.status).toBe("won");
-    expect(s.inventory).toContain("amulet");
-    expect(s.light).toBeGreaterThanOrEqual(4);
-    expect(outcome(s)).toMatch(/mastered/i);
+    expect(s.flags).toContain("knows_truth");
+    expect(s.flags).toContain("wick_with");
+    expect(s.flags).toContain("heart_destroyed");
+    expect(outcome(EMBERLIGHT, s)).toBe(
+      EMBERLIGHT.endings.find((e) => e.id === "ash_scattered")?.text,
+    );
   });
 });
 
@@ -118,7 +166,8 @@ describe("depth: mastering the examine layer earns the best ending", () => {
 // harness; they come forward to next week's repo like a rule in CLAUDE.md.
 // ---------------------------------------------------------------------------
 function allProse(): string[] {
-  const out: string[] = [EMBERLIGHT.darkDeath];
+  const out: string[] = [];
+  for (const e of EMBERLIGHT.endings) out.push(e.text);
   for (const r of Object.values(EMBERLIGHT.rooms)) {
     out.push(r.title, r.text);
     for (const c of r.choices) {
@@ -129,6 +178,7 @@ function allProse(): string[] {
       out.push(l.text);
       for (const e of l.effects ?? []) if (e.say) out.push(e.say);
     }
+    for (const e of r.onEnter ?? []) if (e.say) out.push(e.say);
   }
   return out;
 }
@@ -180,6 +230,27 @@ describe("sensor: the prose keeps its own voice, free of AI tells", () => {
   it("no em-dashes, en-dashes or double hyphens in any game text", () => {
     for (const text of allProse()) {
       expect(dashes.test(text), `a banned dash leaked: "${text}"`).toBe(false);
+    }
+  });
+});
+
+describe("sensor: every goto points at a real room", () => {
+  // A redesign this size is easy to wire wrong. Any goto, and the dungeon's
+  // start, must name a room that actually exists.
+  it("no choice, look or entry leads to a room that isn't there", () => {
+    const ids = new Set(Object.keys(EMBERLIGHT.rooms));
+    expect(ids.has(EMBERLIGHT.start), `start "${EMBERLIGHT.start}" is missing`).toBe(true);
+    const gotos: Array<[string, string]> = [];
+    for (const r of Object.values(EMBERLIGHT.rooms)) {
+      const effects = [
+        ...r.choices.flatMap((c) => c.effects),
+        ...(r.looks ?? []).flatMap((l) => l.effects ?? []),
+        ...(r.onEnter ?? []),
+      ];
+      for (const e of effects) if (e.goto) gotos.push([r.id, e.goto]);
+    }
+    for (const [from, to] of gotos) {
+      expect(ids.has(to), `${from} leads to missing room "${to}"`).toBe(true);
     }
   });
 });
