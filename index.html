@@ -3,16 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>COMP4020 prototype</title>
+    <title>Emberlight</title>
     <meta
       name="description"
-      content="Replace this with one sentence saying what this page is. A search result and a link preview both show it."
+      content="Emberlight is a text dungeon that runs in a terminal. Your torch is your life. Descend, and reach the dawn before the dark reaches you."
     />
 
     <!--
-      The link-preview card: public/card.png, 1200x630 --- replace it. The URL
-      resolves against this page, like any link. No og:title/og:description:
-      scrapers fall back to the <title> and description above.
+      The link-preview card: public/card.png, 1200x630. The URL resolves against
+      this page, like any link. No og:title/og:description: scrapers fall back to
+      the <title> and description above.
     -->
     <meta property="og:type" content="website" />
     <meta property="og:image" content="./card.png" />
@@ -21,18 +21,33 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <header>
-      <nav aria-label="Primary">
-        <a href="./">Home</a>
-      </nav>
-    </header>
-    <main>
-      <h1>COMP4020 prototype</h1>
-      <p>
-        Replace this with your prototype. This week's brief is on the course website;
-        <code>spec/README.md</code> explains how the checks in this repo relate to it.
-      </p>
-    </main>
+    <div class="crt">
+      <header>
+        <nav aria-label="Primary">
+          <span class="brand">EMBERLIGHT</span>
+        </nav>
+      </header>
+      <main>
+        <h1 class="sr-only">Emberlight — a text dungeon</h1>
+        <section id="terminal" aria-label="The dungeon">
+          <div id="scroll" role="log" aria-live="polite" aria-atomic="false"></div>
+          <div id="meter" class="meter" aria-live="off"></div>
+          <ul id="choices" aria-label="What you can do"></ul>
+          <form id="prompt" autocomplete="off">
+            <label for="cmd" class="caret" aria-hidden="true">&gt;</label>
+            <input
+              id="cmd"
+              name="cmd"
+              type="text"
+              aria-label="Type a number to choose, or the name of something to look closer"
+              spellcheck="false"
+              autocapitalize="off"
+              autocorrect="off"
+            />
+          </form>
+        </section>
+      </main>
+    </div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
