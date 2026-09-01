@@ -257,19 +257,35 @@ main {
   outline: none;
 }
 
-/* The menu of moves. */
+/* The menu of moves. A fixed-height panel sized for the busiest room's choice
+   count (six), so stepping between rooms with different numbers of choices
+   never resizes this area and shunts the scrolling text up or down. Rooms
+   with fewer choices just leave the rest of the panel blank. */
+:root {
+  --choice-rows: 6;
+  --choice-row-h: 2.6rem;
+  --choice-gap: 0.15rem;
+}
+
 #choices {
   list-style: none;
   margin: 0;
   padding: 0.2rem 0 0.4rem;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: var(--choice-gap);
+  height: calc(
+    var(--choice-rows) * var(--choice-row-h) + (var(--choice-rows) - 1) * var(--choice-gap) + 0.6rem
+  );
+  min-height: 0; /* override the flex-item default so a long wrapped label can't grow the panel */
+  flex-shrink: 0;
+  overflow-y: auto; /* safety valve, never expected to actually engage */
 }
 
 .choice {
   font: inherit;
   width: 100%;
+  min-height: var(--choice-row-h);
   text-align: left;
   background: none;
   border: 1px solid transparent;
@@ -277,6 +293,7 @@ main {
   padding: 0.5rem 0.6rem;
   cursor: pointer;
   border-radius: 2px;
+  flex-shrink: 0;
   transition:
     background 0.1s ease,
     color 0.1s ease,
