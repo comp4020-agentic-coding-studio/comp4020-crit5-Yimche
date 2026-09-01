@@ -19,7 +19,7 @@ function look(s: GameState, noun: string): GameState {
 // Several tests start here and then diverge on what to do with the Heart.
 function descendToReliquary(): GameState {
   let s = newGame(EMBERLIGHT);
-  s = pick(s, "descend"); // seal -> narthex
+  s = pick(s, "enter_seal"); // approach -> narthex (the guild rope)
   s = pick(s, "press_on"); // narthex -> refectory
   s = pick(s, "to_dormitory"); // refectory -> dormitory
   s = pick(s, "to_bridge"); // dormitory -> bridge
@@ -34,23 +34,32 @@ function descendToReliquary(): GameState {
 // ---------------------------------------------------------------------------
 // The one rule under a focused test (spec: "one rule of the game has a focused
 // automated test"). The rule: a fatal choice ends the run, then and there, as
-// lost. Death is never a meter running out; it is a specific choice, made.
+// lost. Death is never a meter running out; it is a specific choice, made, and
+// it lives deep in the dungeon, never a room or two from the start.
 // ---------------------------------------------------------------------------
 describe("a fatal choice ends the run", () => {
-  it("drinking the black cistern is death", () => {
+  it("drinking the deep wellspring is death", () => {
     let s = newGame(EMBERLIGHT);
-    s = pick(s, "descend");
+    s = pick(s, "enter_seal");
     s = pick(s, "press_on");
+    s = pick(s, "to_dormitory");
+    s = pick(s, "to_bridge");
+    s = pick(s, "edge_across");
+    s = pick(s, "go_down"); // down to the deep cistern
     expect(s.status).toBe("playing");
-    s = pick(s, "drink_cistern"); // the cistern was never water
+    s = pick(s, "drink_deep"); // the wellspring was never water
     expect(s.status).toBe("lost");
   });
 
   it("a lost run offers no further moves", () => {
     let s = newGame(EMBERLIGHT);
-    s = pick(s, "descend");
+    s = pick(s, "enter_seal");
     s = pick(s, "press_on");
-    s = pick(s, "drink_cistern");
+    s = pick(s, "to_dormitory");
+    s = pick(s, "to_bridge");
+    s = pick(s, "edge_across");
+    s = pick(s, "go_down");
+    s = pick(s, "drink_deep");
     expect(visibleChoices(EMBERLIGHT, s)).toHaveLength(0);
   });
 });
@@ -60,7 +69,7 @@ describe("a fatal choice ends the run", () => {
 // ---------------------------------------------------------------------------
 describe("spec: it can be lost", () => {
   it("more than one wrong choice kills", () => {
-    // Death is scattered through the game, not gated behind one trap.
+    // Death is scattered through the deep of the game, not gated behind one trap.
     const fatal: Array<() => GameState> = [
       () => {
         let s = descendToReliquary();
@@ -69,11 +78,13 @@ describe("spec: it can be lost", () => {
       },
       () => {
         let s = newGame(EMBERLIGHT);
-        s = pick(s, "descend");
+        s = pick(s, "enter_seal");
         s = pick(s, "press_on");
         s = pick(s, "to_dormitory");
         s = pick(s, "to_bridge");
-        return pick(s, "stride_across"); // the rotten span
+        s = pick(s, "edge_across");
+        s = pick(s, "go_down");
+        return pick(s, "pull_chain"); // ring for the thing below
       },
     ];
     for (const run of fatal) expect(run().status).toBe("lost");
@@ -99,6 +110,148 @@ describe("spec: a stranger can reach an ending", () => {
   });
 });
 
+describe("spec: four ways lead into the priory", () => {
+  it("every entrance reaches the flooded warren", () => {
+    // The seal, the drain, the well and the belfry each open a different route,
+    // and all four routes reconverge on the warren hub.
+    const routes: Array<[string, (s: GameState) => GameState]> = [
+      ["seal", (s) => {
+        s = pick(s, "enter_seal");
+        s = pick(s, "press_on");
+        s = pick(s, "to_dormitory");
+        s = pick(s, "to_bridge");
+        return pick(s, "edge_across");
+      }],
+      ["drain", (s) => {
+        s = pick(s, "enter_drain"); // -> sluice
+        return pick(s, "sluice_hub");
+      }],
+      ["well", (s) => {
+        s = pick(s, "enter_well"); // -> crypt
+        return pick(s, "crypt_hub");
+      }],
+      ["belfry", (s) => {
+        s = pick(s, "enter_belfry"); // -> belfry
+        s = pick(s, "ride_rope"); // -> flooded_nave
+        return pick(s, "back_hub_nave");
+      }],
+    ];
+    for (const [name, walk] of routes) {
+      const s = walk(newGame(EMBERLIGHT));
+      expect(s.roomId, `the ${name} entrance`).toBe("warren_hub");
+    }
+  });
+});
+
+describe("spec: a wrong turn need not be a grave", () => {
+  it("the survivable forks leave you still playing", () => {
+    // The rotten span: a board goes, you scramble, you live and reach the warren.
+    let span = newGame(EMBERLIGHT);
+    span = pick(span, "enter_seal");
+    span = pick(span, "press_on");
+    span = pick(span, "to_dormitory");
+    span = pick(span, "to_bridge");
+    span = pick(span, "stride_across");
+    expect(span.status).toBe("playing");
+    expect(span.roomId).toBe("warren_hub");
+
+    // The shrouded sister: you breathe old air and carry a fever, but you live.
+    let fever = newGame(EMBERLIGHT);
+    fever = pick(fever, "enter_seal");
+    fever = pick(fever, "press_on");
+    fever = pick(fever, "to_dormitory");
+    fever = pick(fever, "open_cell");
+    fever = pick(fever, "touch_shape");
+    expect(fever.status).toBe("playing");
+    expect(fever.flags).toContain("feverish");
+
+    // Harrow's grip: he closes hard, you tear free into the pews; he leaves,
+    // and comes to collect higher up.
+    let harrow = newGame(EMBERLIGHT);
+    harrow = pick(harrow, "enter_seal");
+    harrow = pick(harrow, "press_on");
+    harrow = pick(harrow, "to_dormitory");
+    harrow = pick(harrow, "to_bridge");
+    harrow = pick(harrow, "edge_across");
+    harrow = pick(harrow, "to_nave");
+    harrow = pick(harrow, "clasp_hand");
+    expect(harrow.status).toBe("playing");
+    expect(harrow.flags).toContain("harrow_hostile");
+  });
+
+  it("forcing the oratory gate is a near miss, not a death", () => {
+    let s = descendToReliquary();
+    s = pick(s, "back_antechamber"); // reliquary -> antechamber
+    s = pick(s, "back_oratory"); // antechamber -> oratory
+    s = pick(s, "force_mechanism");
+    expect(s.status).toBe("playing");
+    expect(s.roomId).toBe("oratory");
+    // The gate has not moved: the patient way is still there to be worked.
+    expect(visibleChoices(EMBERLIGHT, s).map((c) => c.id)).toContain("work_mechanism");
+  });
+});
+
+describe("spec: several ways lead down to the deep", () => {
+  it("the crypt bone stair is an alternate descent", () => {
+    let s = newGame(EMBERLIGHT);
+    s = pick(s, "enter_well"); // straight into the crypt
+    s = pick(s, "crypt_descend"); // the ossuary bone stair
+    expect(s.roomId).toBe("deep_cistern");
+  });
+
+  it("freeing Sister Aume opens her service passage to the oratory", () => {
+    let s = newGame(EMBERLIGHT);
+    s = pick(s, "enter_drain"); // -> sluice
+    s = pick(s, "sluice_hub"); // -> warren_hub
+    s = pick(s, "to_scriptorium");
+    s = pick(s, "answer_voice"); // learn who she is
+    s = pick(s, "free_aume"); // break the wall
+    s = pick(s, "aume_passage"); // her passage down
+    expect(s.roomId).toBe("oratory");
+    expect(s.flags).toContain("aume_freed");
+  });
+});
+
+describe("spec: exploration pays off with items", () => {
+  it("the sacrist's keys open the oratory gate without risk", () => {
+    let s = newGame(EMBERLIGHT);
+    s = pick(s, "enter_seal");
+    s = pick(s, "to_chapter");
+    s = pick(s, "force_aumbry"); // take the keys
+    expect(s.inventory).toContain("keys");
+    s = pick(s, "chapter_to_refectory");
+    s = pick(s, "to_dormitory");
+    s = pick(s, "to_bridge");
+    s = pick(s, "edge_across");
+    s = pick(s, "go_down");
+    s = pick(s, "to_oratory");
+    // The keyed unlock is only offered because the keys are in the pack.
+    expect(visibleChoices(EMBERLIGHT, s).map((c) => c.id)).toContain("unlock_gate");
+    s = pick(s, "unlock_gate");
+    expect(s.roomId).toBe("antechamber");
+  });
+
+  it("the kitchen knife lets you face down Harrow without a struggle", () => {
+    let s = newGame(EMBERLIGHT);
+    s = pick(s, "enter_seal");
+    s = pick(s, "press_on");
+    s = pick(s, "to_kitchen");
+    s = pick(s, "take_blade"); // the boning knife
+    expect(s.inventory).toContain("knife");
+    s = pick(s, "kitchen_back");
+    s = pick(s, "to_dormitory");
+    s = pick(s, "to_bridge");
+    s = pick(s, "edge_across");
+    s = pick(s, "to_nave");
+    // Showing the blade is only offered because the knife is in the pack.
+    expect(visibleChoices(EMBERLIGHT, s).map((c) => c.id)).toContain("show_blade");
+    s = pick(s, "show_blade");
+    expect(s.status).toBe("playing");
+    expect(s.flags).toContain("harrow_gone");
+    expect(s.flags).not.toContain("harrow_hostile");
+  });
+});
+
 describe("spec: what you do with the Heart changes the ending", () => {
   it("delivering it and destroying it reach different endings", () => {
     // Deliver: carry the Heart up untouched.
@@ -120,12 +273,61 @@ describe("spec: what you do with the Heart changes the ending", () => {
     expect(destroyed.status).toBe("won");
     expect(outcome(EMBERLIGHT, delivered)).not.toBe(outcome(EMBERLIGHT, destroyed));
   });
+
+  it("carrying the Heart out past a hostile Harrow gets you waylaid", () => {
+    let s = newGame(EMBERLIGHT);
+    s = pick(s, "enter_seal");
+    s = pick(s, "press_on");
+    s = pick(s, "to_dormitory");
+    s = pick(s, "to_bridge");
+    s = pick(s, "edge_across");
+    s = pick(s, "to_nave");
+    s = pick(s, "clasp_hand"); // makes Harrow hostile
+    s = pick(s, "back_hub_nave");
+    s = pick(s, "go_down");
+    s = pick(s, "to_oratory");
+    s = pick(s, "work_mechanism");
+    s = pick(s, "slip_past");
+    s = pick(s, "take_heart");
+    s = pick(s, "to_threshold");
+    s = pick(s, "ascend");
+    s = pick(s, "climb_out");
+    expect(s.status).toBe("won");
+    expect(outcome(EMBERLIGHT, s)).toBe(
+      EMBERLIGHT.endings.find((e) => e.id === "waylaid")?.text,
+    );
+  });
+
+  it("a fever carried out of the priory colours the ending", () => {
+    let s = newGame(EMBERLIGHT);
+    s = pick(s, "enter_seal");
+    s = pick(s, "press_on");
+    s = pick(s, "to_dormitory");
+    s = pick(s, "open_cell");
+    s = pick(s, "touch_shape"); // catch the fever
+    s = pick(s, "leave_ward");
+    s = pick(s, "to_bridge");
+    s = pick(s, "edge_across");
+    s = pick(s, "go_down");
+    s = pick(s, "to_oratory");
+    s = pick(s, "work_mechanism");
+    s = pick(s, "slip_past");
+    s = pick(s, "take_heart");
+    s = pick(s, "to_threshold");
+    s = pick(s, "ascend");
+    s = pick(s, "climb_out");
+    expect(s.status).toBe("won");
+    expect(s.flags).toContain("feverish");
+    expect(outcome(EMBERLIGHT, s)).toBe(
+      EMBERLIGHT.endings.find((e) => e.id === "fever_carried")?.text,
+    );
+  });
 });
 
 describe("depth: mastering the examine layer earns the best ending", () => {
   it("the truth, the freed sister and the saved child reach the richest end", () => {
     let s = newGame(EMBERLIGHT);
-    s = pick(s, "descend");
+    s = pick(s, "enter_seal");
     // Find and keep the child (the alcove hides them; looking reveals them).
     s = look(s, "alcove");
     s = pick(s, "take_child");
@@ -155,6 +357,7 @@ describe("depth: mastering the examine layer earns the best ending", () => {
     expect(s.flags).toContain("knows_truth");
     expect(s.flags).toContain("wick_with");
     expect(s.flags).toContain("heart_destroyed");
+    expect(s.flags).not.toContain("feverish");
     expect(outcome(EMBERLIGHT, s)).toBe(
       EMBERLIGHT.endings.find((e) => e.id === "ash_scattered")?.text,
     );
