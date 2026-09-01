@@ -211,16 +211,9 @@ function restart(): void {
 function showTitle(): void {
   atTitle = true;
 
-  // Affordance first, per house rule: the one control is on screen at once.
+  // The bottom command bar stays empty here; the one way in is a bright,
+  // boxed control set right under the logo, where a title screen expects it.
   choicesEl.replaceChildren();
-  const li = document.createElement("li");
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "choice pulse";
-  btn.innerHTML = `<span class="key">1</span> begin the journey`;
-  btn.addEventListener("click", beginJourney);
-  li.append(btn);
-  choicesEl.append(li);
 
   const card = document.createElement("div");
   card.className = "title";
@@ -235,7 +228,14 @@ function showTitle(): void {
   const tag = document.createElement("p");
   tag.className = "tagline";
   tag.textContent = "A text dungeon beneath a sealed priory.";
-  card.append(top, bot, tag);
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "begin pulse";
+  btn.innerHTML = `<span class="key">1</span> begin the journey`;
+  btn.addEventListener("click", beginJourney);
+
+  card.append(top, bot, tag, btn);
   scroll.append(card);
   atBottom();
 

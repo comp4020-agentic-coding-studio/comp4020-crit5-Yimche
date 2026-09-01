@@ -163,6 +163,44 @@ main {
   letter-spacing: 0.12em;
 }
 
+/* The one way in: bright, boxed and centred under the logo, so it reads at a
+   glance instead of hiding in the command bar. */
+#scroll .title .begin {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.9rem auto 0;
+  font: inherit;
+  font-size: 1.1rem;
+  color: var(--ink-bright);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  padding: 0.7rem 1.7rem;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  text-shadow: 0 0 8px var(--glow);
+  transition:
+    background 0.1s ease,
+    color 0.1s ease,
+    border-color 0.1s ease;
+}
+
+#scroll .title .begin:hover,
+#scroll .title .begin:focus-visible {
+  background: var(--ink-bright);
+  color: #000;
+  border-color: var(--ink-bright);
+  text-shadow: none;
+  outline: none;
+}
+
+#scroll .title .begin:hover .key,
+#scroll .title .begin:focus-visible .key {
+  color: #000;
+  text-shadow: none;
+}
+
 #scroll .room {
   margin: 0 0 0.5rem;
 }
