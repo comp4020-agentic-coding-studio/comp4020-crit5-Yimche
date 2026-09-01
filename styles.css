@@ -130,6 +130,39 @@ main {
   margin-top: auto;
 }
 
+/* The one-time title card: the logo, centred, with a heavier phosphor bloom. */
+#scroll .title {
+  text-align: center;
+  padding: 1.5rem 0 2rem;
+}
+
+/* The banner is 58 columns of block art, so its size is tied to the viewport
+   width, not the body rem: it shrinks to fit a phone and never triggers the
+   scroll box's horizontal clip. Each line stacks and centres on its own. */
+#scroll .logo {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  font: inherit;
+  font-size: clamp(0.4rem, 2.3vw, 1.35rem);
+  line-height: 1;
+  color: var(--ink-bright);
+  text-shadow:
+    0 0 10px var(--glow),
+    0 0 22px var(--glow);
+}
+
+#scroll .logo + .logo {
+  margin-top: 0.15em;
+}
+
+#scroll .tagline {
+  margin: 1.4rem 0 0;
+  color: var(--ink-dim);
+  letter-spacing: 0.12em;
+}
+
 #scroll .room {
   margin: 0 0 0.5rem;
 }

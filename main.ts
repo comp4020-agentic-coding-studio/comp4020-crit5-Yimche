@@ -9,6 +9,30 @@ import type { GameState } from "./game.ts";
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const finePointer = window.matchMedia("(pointer: fine)").matches;
 
+// The title card's logo, shown once on first load. A block-figlet banner in the
+// old bulletin-board style, stacked EMBER over LIGHT so it stays readable down
+// to a phone. Carries its own weight without an image and scales with the font.
+const LOGO_TOP = [
+  "8888888888 888b     d888 888888b.   8888888888 8888888b.  ",
+  "888        8888b   d8888 888  \"88b  888        888   Y88b ",
+  "888        88888b.d88888 888  .88P  888        888    888 ",
+  "8888888    888Y88888P888 8888888K.  8888888    888   d88P ",
+  "888        888 Y888P 888 888  \"Y88b 888        8888888P\"  ",
+  "888        888  Y8P  888 888    888 888        888 T88b   ",
+  "888        888   \"   888 888   d88P 888        888  T88b  ",
+  "8888888888 888       888 8888888P\"  8888888888 888   T88b",
+].join("\n");
+const LOGO_BOT = [
+  "888      8888888 .d8888b.  888    888 88888888888 ",
+  "888        888  d88P  Y88b 888    888     888     ",
+  "888        888  888    888 888    888     888     ",
+  "888        888  888        8888888888     888     ",
+  "888        888  888  88888 888    888     888     ",
+  "888        888  888    888 888    888     888     ",
+  "888        888  Y88b  d88P 888    888     888     ",
+  "88888888 8888888 \"Y8888P88 888    888     888",
+].join("\n");
+
 const scroll = must<HTMLDivElement>("#scroll");
 const choicesEl = must<HTMLUListElement>("#choices");
 const form = must<HTMLFormElement>("#prompt");
@@ -18,6 +42,7 @@ let state: GameState = newGame(EMBERLIGHT);
 let typing = false;
 let skip = false;
 let hasActed = false; // the opening move pulses until the player acts once
+let atTitle = false; // the title card shows on first load only, never after a death
 
 function must<T extends Element>(sel: string): T {
   const el = document.querySelector<T>(sel);
@@ -178,6 +203,49 @@ function restart(): void {
   state = newGame(EMBERLIGHT);
   hasActed = false;
   scroll.replaceChildren();
+  void start(); // straight back into the dungeon: no title card after a death
+}
+
+/** The one-time title card: the logo, and a single way in. Only the very first
+ *  load lands here; a death restarts the game itself, not this screen. */
+function showTitle(): void {
+  atTitle = true;
+
+  // Affordance first, per house rule: the one control is on screen at once.
+  choicesEl.replaceChildren();
+  const li = document.createElement("li");
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "choice pulse";
+  btn.innerHTML = `<span class="key">1</span> begin the journey`;
+  btn.addEventListener("click", beginJourney);
+  li.append(btn);
+  choicesEl.append(li);
+
+  const card = document.createElement("div");
+  card.className = "title";
+  const top = document.createElement("pre");
+  top.className = "logo";
+  top.setAttribute("aria-hidden", "true");
+  top.textContent = LOGO_TOP;
+  const bot = document.createElement("pre");
+  bot.className = "logo";
+  bot.setAttribute("aria-hidden", "true");
+  bot.textContent = LOGO_BOT;
+  const tag = document.createElement("p");
+  tag.className = "tagline";
+  tag.textContent = "A text dungeon beneath a sealed priory.";
+  card.append(top, bot, tag);
+  scroll.append(card);
+  atBottom();
+
+  if (finePointer) btn.focus();
+}
+
+function beginJourney(): void {
+  if (!atTitle) return;
+  atTitle = false;
+  scroll.replaceChildren();
   void start();
 }
 
@@ -196,6 +264,10 @@ form.addEventListener("submit", (e) => {
   e.preventDefault();
   const value = input.value.trim();
   input.value = "";
+  if (atTitle) {
+    beginJourney();
+    return;
+  }
   if (!value || typing || state.status !== "playing") {
     if (typing) skip = true;
     return;
@@ -221,6 +293,13 @@ scroll.addEventListener("click", (e) => {
 // Number keys work anywhere, so keyboard players never have to aim a mouse.
 window.addEventListener("keydown", (e) => {
   if (e.target === input) return;
+  if (atTitle) {
+    if (e.key === "1" || e.key === "Enter") {
+      e.preventDefault();
+      beginJourney();
+    }
+    return;
+  }
   if (typing) {
     skip = true;
     return;
@@ -236,4 +315,4 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-void start();
+showTitle();
