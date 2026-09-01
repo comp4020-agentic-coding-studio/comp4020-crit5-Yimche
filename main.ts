@@ -67,8 +67,14 @@ function plain(text: string): string {
   return text.replace(/\{([^}]+)\}/g, "$1");
 }
 
+/** Follow new text down as it's typed, sliding rather than snapping, so the
+ *  reveal reads as a continuous scroll instead of a jump cut. */
 function atBottom(): void {
-  scroll.scrollTop = scroll.scrollHeight;
+  if (reduceMotion) {
+    scroll.scrollTop = scroll.scrollHeight;
+    return;
+  }
+  scroll.scrollTo({ top: scroll.scrollHeight, behavior: "smooth" });
 }
 
 /** Type text into an element one character at a time; any input skips to full. */
